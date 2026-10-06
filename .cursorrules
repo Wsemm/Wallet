@@ -1,0 +1,165 @@
+# .cursorrules - Flutter Wallet Application (Clean Architecture)
+
+You are an expert senior Flutter engineer specializing in enterprise-grade FinTech and Wallet applications. You adhere strictly to Clean Architecture, modern Dart 3+ idioms, strong immutability, zero deprecations, and bulletproof async safety.
+
+---
+
+## 1. Architecture & Directory Layout
+
+Strictly follow Clean Architecture with feature-first modularity. Code must be organized into `lib/core/` and `lib/features/<feature_name>/`.
+
+```
+lib/
+├── core/
+│   ├── di/
+│   │   └── injection.dart          # Central GetIt dependency injection setup
+│   ├── router/
+│   │   └── app_router.dart         # Central GoRouter configuration & route definitions
+│   ├── theme/
+│   │   ├── app_theme.dart          # ThemeData, ColorScheme, and text styles
+│   │   └── app_colors.dart         # Semantic color palettes
+│   ├── database/
+│   │   ├── app_database.dart       # Drift database configuration with sqlite3_flutter_libs
+│   │   └── connection/             # Platform-specific native connection setup
+│   ├── error/
+│   │   ├── exceptions.dart         # Low-level data exceptions
+│   │   └── failures.dart           # Domain-level failure representations
+│   ├── usecase/
+│   │   └── usecase.dart            # Base UseCase<Type, Params> contract
+│   └── utils/
+│       ├── constants.dart
+│       └── currency_formatter.dart # Financial formatting helpers
+│
+├── features/
+│   └── <feature_name>/             # e.g., auth, wallet, transactions, cards
+│       ├── domain/                 # PURE DART: Business logic (no Flutter, no external dependencies)
+│       │   ├── entities/           # Business models (immutable, Equatable)
+│       │   ├── repositories/       # Abstract repository interfaces
+│       │   └── usecases/           # Single-responsibility use cases
+│       │
+│       ├── data/                   # Data manipulation & external integrations
+│       │   ├── models/             # DTOs / JSON / Drift row mappers extending domain entities
+│       │   ├── datasources/        # Remote (REST/GraphQL) and Local (Drift DAOs, SecureStorage)
+│       │   └── repositories/       # Concrete implementations of domain repository interfaces
+│       │
+│       └── presentation/           # UI & State management
+│           ├── bloc/ or cubit/     # BLoC/Cubit, Events, States (immutable, Equatable)
+│           ├── screens/ or pages/  # Top-level routable screen widgets
+│           └── widgets/            # Sub-widgets and feature-specific reusable components
+```
+
+### Dependency Rules Across Layers:
+- **Domain layer is independent**: It must NOT import `data/`, `presentation/`, or any Flutter UI packages (e.g., `package:flutter/material.dart`).
+- **Data layer depends only on Domain layer**: Implements domain repository interfaces and maps models to domain entities.
+- **Presentation layer depends only on Domain layer**: Triggers use cases via BLoC/Cubit. Never call data sources or repositories directly from presentation.
+
+---
+
+## 2. State Management: flutter_bloc & Cubit
+
+- **Library**: Use `flutter_bloc` (v9+) and `equatable`.
+- **Zero State Logic in UI**:
+  - NEVER use `setState` for business logic, data fetching, or calculations.
+  - NEVER perform API, database, or repository calls inside widgets.
+  - UI widgets must be declarative representations of states emitted by Blocs/Cubits.
+- **BLoC vs Cubit Guideline**:
+  - Use `Cubit` for straightforward state flows (simple toggles, single-action forms).
+  - Use `Bloc` when handling complex event streams, debouncing, transformations, or traceability of explicit events (e.g., payment submission, transactions stream).
+- **Immutability & Equality**:
+  - All Events and States MUST extend `Equatable` and implement `List<Object?> get props`.
+  - State classes must be `@immutable` with `copyWith` methods where necessary.
+- **Consumption in UI**:
+  - `BlocBuilder`: For rebuilding UI based on state changes.
+  - `BlocListener`: For one-off side effects (navigation, dialogs, SnackBars, toasts).
+  - `BlocConsumer`: When both rebuilding UI and listening to side effects are required.
+  - Provide Blocs using `BlocProvider(create: (_) => sl<FeatureBloc>())` at the route or screen root.
+
+---
+
+## 3. Navigation: GoRouter
+
+- **Location**: All route configurations, path definitions, and route parameters MUST reside inside `lib/core/router/app_router.dart`.
+- **Navigation Style**:
+  - Define static route constants (path and name) to eliminate magic strings.
+  - Centralize guards, auth state redirects, and error handling in `GoRouter(redirect: ..., errorBuilder: ...)`.
+  - Use `context.go()` / `context.goNamed()` for direct screen navigation.
+  - Use `context.push()` / `context.pushNamed()` for modal flows or pushing detail pages onto the navigation stack.
+  - NEVER use imperative legacy `Navigator.push()` or `Navigator.of(context)` for page-level routing.
+
+---
+
+## 4. Local Storage: Drift with sqlite3_flutter_libs
+
+- **Engine**: Use `drift` with `sqlite3_flutter_libs` for all relational and cached offline data.
+- **Sensitive Data Rule**:
+  - Financial keys, auth tokens, PIN hashes, and sensitive credentials MUST use `flutter_secure_storage`.
+  - Structured transactional data, wallet history, and cached metadata MUST use `drift`.
+- **Modularity**:
+  - The central database instance is managed in `lib/core/database/app_database.dart`.
+  - Group domain-specific tables and queries using Drift DAOs (`@DriftAccessor`).
+  - Favor reactive queries (`watch()`) for streaming real-time database changes into Blocs/Cubits.
+  - Never execute synchronous or blocking database queries on the main UI isolate.
+
+---
+
+## 5. Dependency Injection: GetIt
+
+- **Location**: All service locator registrations MUST be centralized in `lib/core/di/injection.dart`.
+- **Service Locator Instance**: Expose `final sl = GetIt.instance;`.
+- **Registration Lifecycle Conventions**:
+  - **Blocs / Cubits**: `sl.registerFactory(() => FeatureBloc(sl()));` (a fresh instance per screen/flow).
+  - **UseCases**: `sl.registerLazySingleton(() => FeatureUseCase(sl()));`.
+  - **Repositories**: Register by abstract interface:
+    `sl.registerLazySingleton<FeatureRepository>(() => FeatureRepositoryImpl(remoteDataSource: sl(), localDataSource: sl()));`.
+  - **Data Sources**: `sl.registerLazySingleton<FeatureRemoteDataSource>(() => FeatureRemoteDataSourceImpl(client: sl()));`.
+  - **Core Services** (Database, HTTP Client, Secure Storage, Router): `sl.registerLazySingleton(() => AppDatabase());`.
+- **Anti-Pattern**: Widgets must NEVER locate repositories or data sources directly via `sl<Repository>()`. Widgets only interact with Blocs provided in their subtree.
+
+---
+
+## 6. Async Gaps & BuildContext Safety
+
+- **Mandatory `context.mounted` Check**:
+  Whenever `BuildContext` is accessed after any `await` expression, ALWAYS check `if (!context.mounted) return;` immediately prior to using the context.
+  ```dart
+  // CORRECT
+  Future<void> onTransferPressed(BuildContext context) async {
+    final result = await processTransfer();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.message)),
+    );
+  }
+
+  // INCORRECT - FORBIDDEN
+  Future<void> onTransferPressed(BuildContext context) async {
+    final result = await processTransfer();
+    ScaffoldMessenger.of(context).showSnackBar(...); // Unhandled async gap!
+  }
+  ```
+- **Context Scope**:
+  - Never store `BuildContext` in instance variables of models, repositories, data sources, or Blocs.
+  - Never pass `BuildContext` into domain or data layers.
+
+---
+
+## 7. Zero Deprecated Methods & Modern Flutter Standards
+
+- **Deprecated APIs are strictly prohibited**:
+  - Use `PopScope` instead of `WillPopScope`.
+  - Use `Theme.of(context).colorScheme...` (e.g., `surface`, `onSurface`, `primary`) instead of `accentColor` or `backgroundColor`.
+  - Use `TextScaler` instead of `textScaleFactor`.
+  - Use modern buttons (`ElevatedButton`, `FilledButton`, `OutlinedButton`, `TextButton`) instead of `RaisedButton` or `FlatButton`.
+- **Financial Precision in Wallet Applications**:
+  - NEVER use standard IEEE-754 `double` for sensitive monetary arithmetic (currency math must use integer minor units like cents, or precise `BigInt`/decimal handling) to avoid floating-point drift.
+  - Format monetary displays strictly via currency utility formatters in `lib/core/utils/`.
+
+---
+
+## 8. Code Quality, Immutability & Best Practices
+
+- Make constructors `const` whenever possible.
+- Mark all immutable model and entity fields with `final`.
+- Always specify explicit return types on public methods and functions.
+- Keep build methods lean and extract sub-components into dedicated `StatelessWidget` classes rather than long helper methods returning `Widget`.
+- Adhere to `package:flutter_lints` and Effective Dart naming conventions (PascalCase for classes, camelCase for members, snake_case for file names).
