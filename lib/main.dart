@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:wallet/features/transactionsGroup/presentation/bloc/transaction_group_bloc.dart'
+    as group;
 import 'core/di/injection.dart';
 import 'features/transactions/presentation/bloc/transaction_bloc.dart';
 
@@ -17,8 +18,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => sl<TransactionBloc>()..add(const LoadTransactions()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              sl<TransactionBloc>()..add(const LoadTransactionsEvent()),
+        ),
+        BlocProvider(
+          create: (_) =>
+              sl<group.TransactionGroupBloc>()
+                ..add(const group.LoadTransactionsGroupsEvent()),
+        ),
+      ],
       child: ScreenUtilPlusInit(
         designSize: const Size(375, 812),
         minTextAdapt: true,

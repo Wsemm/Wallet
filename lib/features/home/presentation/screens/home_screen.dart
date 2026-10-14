@@ -2,372 +2,270 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
-
-import 'package:wallet/core/database/tables/transactions_table.dart';
 import 'package:wallet/core/router/app_router.dart';
+import 'package:wallet/features/home/presentation/widgets/dialogs/confirm_delte_all_dialog.dart';
+import 'package:wallet/features/home/presentation/widgets/empty_home_widget.dart';
+import 'package:wallet/features/home/presentation/widgets/total_balance_widget.dart';
 import 'package:wallet/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:wallet/features/transactions/presentation/bloc/transaction_bloc.dart';
+import 'package:wallet/features/transactions/presentation/widgets/transaction_dialogs.dart';
+import 'package:wallet/features/transactions/presentation/widgets/transaction_list_item.dart';
+import 'package:wallet/features/transactionsGroup/presentation/bloc/transaction_group_bloc.dart';
 
-class HomeScreen extends StatelessWidget {
+part '../widgets/sumtrice_widget.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final Set<int> _selectedIds = <int>{};
+  bool _selectionMode = false;
+
+  void _enterSelection(int id) {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds
+        ..clear()
+        ..add(id);
+    });
+  }
+
+  void _exitSelection() {
+    setState(() {
+      _selectionMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelected(int id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) {
+          _selectionMode = false;
+        }
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
+
+  void deleteSelectedItems() {
+    confirmDeleteSelectedTransactions(context, _selectedIds);
+  }
+
+  double _selectedSum(List<TransactionEntity> transactions) {
+    return transactions
+        .where((t) => t.id != null && _selectedIds.contains(t.id))
+        .fold(0.0, (sum, t) => sum + t.signedAmount);
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Wallet Dashboard',
-          style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+    return PopScope(
+      canPop: !_selectionMode,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _selectionMode) {
+          _exitSelection();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            _selectionMode
+                ? '${_selectedIds.length} selected'
+                : 'Wallet Dashboard',
+            style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
+          ),
+          centerTitle: true,
+          leading: _selectionMode
+              ? IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: _exitSelection,
+                )
+              : null,
+          actions: [
+            if (!_selectionMode)
+              IconButton(
+                tooltip: 'Analytics',
+                icon: const Icon(Icons.analytics_outlined),
+                onPressed: () => context.push(AppRoutes.analytics),
+              ),
+            if (!_selectionMode)
+              IconButton(
+                tooltip: 'Analytics',
+                icon: const Icon(Icons.folder_outlined),
+                onPressed: () => context.push(AppRoutes.transactionGroup),
+              ),
+            if (_selectionMode)
+              IconButton(
+                tooltip: 'Delete selected',
+                icon: const Icon(Icons.delete_outline_sharp, color: Colors.red),
+                onPressed: () => deleteSelectedItems(),
+              ),
+          ],
         ),
-        centerTitle: true,
-      ),
-      body: BlocBuilder<TransactionBloc, TransactionState>(
-        builder: (context, state) {
-          if (state.status == TransactionStatus.loading &&
-              state.transactions.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
+        body: BlocBuilder<TransactionGroupBloc, TransactionGroupState>(
+          builder: (context, state) {
+            return BlocBuilder<TransactionBloc, TransactionState>(
+              builder: (context, state) {
+                if (state.status == TransactionStatus.loading &&
+                    state.transactions.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-          if (state.status == TransactionStatus.error &&
-              state.transactions.isEmpty) {
-            return Center(
-              child: Text(
-                state.errorMessage ?? 'An error occurred',
-                style: TextStyle(fontSize: 16.sp, color: colorScheme.error),
-              ),
-            );
-          }
-
-          return CustomScrollView(
-            slivers: [
-              // Summary Section
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 12.h,
-                  ),
-                  child: Card(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.r),
+                if (state.status == TransactionStatus.error &&
+                    state.transactions.isEmpty) {
+                  return Center(
+                    child: Text(
+                      state.errorMessage ?? 'An error occurred',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: colorScheme.error,
+                      ),
                     ),
-                    child: Padding(
-                      padding: EdgeInsets.all(16.r),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Total Balance',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                          SizedBox(height: 6.h),
-                          Text(
-                            '\$${state.totalBalance.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 28.sp,
-                              fontWeight: FontWeight.bold,
-                              color: state.totalBalance >= 0
-                                  ? colorScheme.primary
-                                  : Colors.red,
-                            ),
-                          ),
-                          Divider(height: 24.h),
-                          // First row: Income & Expense
-                          Row(
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    context.read<TransactionBloc>().add(
+                      LoadTransactionsEvent(),
+                    );
+                  },
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: TotalBalanceWidget(
+                          selectionMode: _selectionMode,
+                          colorScheme: colorScheme,
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Expanded(
-                                child: _buildSummaryMetric(
-                                  label: 'Income',
-                                  amount:
-                                      '+\$${state.totalIncome.toStringAsFixed(2)}',
-                                  color: Colors.green,
-                                  icon: Icons.arrow_downward,
+                              Text(
+                                'Transactions',
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              SizedBox(width: 8.w),
-                              Expanded(
-                                child: _buildSummaryMetric(
-                                  label: 'Expense',
-                                  amount:
-                                      '-\$${state.totalExpense.toStringAsFixed(2)}',
-                                  color: Colors.red,
-                                  icon: Icons.arrow_upward,
+                              Text(
+                                '${state.transactions.length} items',
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: 12.h),
-                          // Second row: Debits & People debits from user
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildSummaryMetric(
-                                  label: 'Debits',
-                                  amount:
-                                      '\$${state.totalDebits.toStringAsFixed(2)}',
-                                  color: Colors.orange,
-                                  icon: Icons.money_off,
-                                ),
-                              ),
-                              SizedBox(width: 8.w),
-                              Expanded(
-                                child: _buildSummaryMetric(
-                                  label: 'People debits from user',
-                                  amount:
-                                      '\$${state.totalPeopleDebits.toStringAsFixed(2)}',
-                                  color: Colors.blue,
-                                  icon: Icons.handshake,
-                                ),
-                              ),
-                            ],
+                        ),
+                      ),
+                      if (state.transactions.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: EmptyHomeData(),
+                        )
+                      else
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(
+                            16.w,
+                            4.h,
+                            16.w,
+                            _selectionMode ? 88.h : 55.h,
                           ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Transaction List Header
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Transactions',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final item = state.transactions[index];
+                              final id = item.id;
+                              return TransactionListItem(
+                                item: item,
+                                selectionMode: _selectionMode,
+                                selected:
+                                    id != null && _selectedIds.contains(id),
+                                onLongPress: id == null
+                                    ? null
+                                    : () => _enterSelection(id),
+                                onTap: _selectionMode
+                                    ? (id == null
+                                          ? null
+                                          : () => _toggleSelected(id))
+                                    : null,
+                                onEdit: () =>
+                                    showEditTransactionSheet(context, item),
+                                onDelete: () =>
+                                    confirmDeleteTransaction(context, item),
+                              );
+                            }, childCount: state.transactions.length),
+                          ),
                         ),
-                      ),
-                      Text(
-                        '${state.transactions.length} items',
-                        style: TextStyle(
-                          fontSize: 13.sp,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
                     ],
                   ),
-                ),
-              ),
-
-              // Transaction Items / Empty State
-              if (state.transactions.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24.w,
-                        vertical: 32.h,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.receipt_long,
-                            size: 56.r,
-                            color: Colors.grey.shade400,
-                          ),
-                          SizedBox(height: 12.h),
-                          Text(
-                            'No transactions recorded yet',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade600,
+                );
+              },
+            );
+          },
+        ),
+        bottomNavigationBar: _selectionMode
+            ? BlocBuilder<TransactionBloc, TransactionState>(
+                builder: (context, state) {
+                  final sum = _selectedSum(state.transactions);
+                  final sign = sum >= 0 ? '+' : '-';
+                  return Material(
+                    elevation: 8,
+                    color: colorScheme.surfaceContainerHigh,
+                    child: SafeArea(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 12.h,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Selected sum: $sign\$${sum.abs().toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 6.h),
-                          Text(
-                            'Tap the button below to add your first transaction.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              color: Colors.grey.shade500,
+                            TextButton(
+                              onPressed: _exitSelection,
+                              child: const Text('Done'),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 4.h,
-                  ),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final item = state.transactions[index];
-                      return _buildTransactionItem(context, item);
-                    }, childCount: state.transactions.length),
-                  ),
+                  );
+                },
+              )
+            : null,
+        floatingActionButton: _selectionMode
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => context.push(AppRoutes.addTransaction),
+                icon: Icon(Icons.add, size: 20.r),
+                label: Text(
+                  'Add Transaction',
+                  style: TextStyle(fontSize: 14.sp),
                 ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(AppRoutes.addTransaction),
-        icon: Icon(Icons.add, size: 20.r),
-        label: Text('Add Transaction', style: TextStyle(fontSize: 14.sp)),
-      ),
-    );
-  }
-
-  Widget _buildSummaryMetric({
-    required String label,
-    required String amount,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10.r),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 14.r,
-            backgroundColor: color.withValues(alpha: 0.18),
-            child: Icon(icon, size: 14.r, color: color),
-          ),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    color: Colors.grey.shade700,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  amount,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionItem(BuildContext context, TransactionEntity item) {
-    final theme = Theme.of(context);
-    final isPeopleDebt =
-        item.type == TransactionType.debt && item.category == 'people_debt';
-
-    final (badgeColor, badgeIcon, sign) = switch (item.type) {
-      TransactionType.income => (Colors.green, Icons.arrow_downward, '+'),
-      TransactionType.expense => (Colors.red, Icons.arrow_upward, '-'),
-      TransactionType.debt =>
-        isPeopleDebt
-            ? (Colors.blue, Icons.handshake, '+')
-            : (Colors.orange, Icons.money_off, '-'),
-    };
-
-    final dateStr =
-        '${item.createdAt.year}-${item.createdAt.month.toString().padLeft(2, '0')}-${item.createdAt.day.toString().padLeft(2, '0')} ${item.createdAt.hour.toString().padLeft(2, '0')}:${item.createdAt.minute.toString().padLeft(2, '0')}';
-
-    return Card(
-      margin: EdgeInsets.only(bottom: 8.h),
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-      child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
-        leading: CircleAvatar(
-          radius: 18.r,
-          backgroundColor: badgeColor.withValues(alpha: 0.15),
-          child: Icon(badgeIcon, size: 18.r, color: badgeColor),
-        ),
-        title: Text(
-          item.title,
-          style: TextStyle(fontSize: 15.sp, fontWeight: FontWeight.w600),
-        ),
-        subtitle: Row(
-          children: [
-            Container(
-              margin: EdgeInsets.only(top: 4.h, right: 8.w),
-              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(4.r),
               ),
-              child: Text(
-                isPeopleDebt ? 'People Debt' : item.category,
-                style: TextStyle(fontSize: 10.sp),
-              ),
-            ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              height: 30.h,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '$sign\$${item.amount.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.bold,
-                      color: badgeColor,
-                    ),
-                  ),
-                  if (item.id != null)
-                    IconButton(
-                      icon: Icon(
-                        Icons.delete_outline,
-                        size: 20.r,
-                        color: Colors.grey,
-                      ),
-                      onPressed: () {
-                        context.read<TransactionBloc>().add(
-                          DeleteTransactionEvent(item.id!),
-                        );
-                      },
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(top: 4.h),
-              child: Text(
-                dateStr,
-                style: TextStyle(fontSize: 11.sp, color: Colors.grey),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

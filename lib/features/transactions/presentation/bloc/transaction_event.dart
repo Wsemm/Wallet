@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-
 import '../../domain/entities/transaction_entity.dart';
 
 sealed class TransactionEvent extends Equatable {
@@ -9,14 +8,23 @@ sealed class TransactionEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-final class LoadTransactions extends TransactionEvent {
-  const LoadTransactions();
+final class LoadTransactionsEvent extends TransactionEvent {
+  const LoadTransactionsEvent();
 }
 
 final class AddTransactionEvent extends TransactionEvent {
   final TransactionEntity transaction;
 
   const AddTransactionEvent(this.transaction);
+
+  @override
+  List<Object?> get props => [transaction];
+}
+
+final class UpdateTransactionEvent extends TransactionEvent {
+  final TransactionEntity transaction;
+
+  const UpdateTransactionEvent(this.transaction);
 
   @override
   List<Object?> get props => [transaction];

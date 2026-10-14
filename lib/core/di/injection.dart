@@ -1,5 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wallet/features/transactionsGroup/data/repositories/transaction_group_repository_impl.dart';
+import 'package:wallet/features/transactionsGroup/domain/repositories/transaction_group_repository.dart';
+import 'package:wallet/features/transactionsGroup/presentation/bloc/transaction_group_bloc.dart';
 
 import '../../features/transactions/data/repositories/transaction_repository_impl.dart';
 import '../../features/transactions/domain/repositories/transaction_repository.dart';
@@ -20,11 +23,22 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<TransactionRepository>(
     () => TransactionRepositoryImpl(sl<AppDatabase>()),
   );
+  // Feature: Transactions Group - Data
+  sl.registerLazySingleton<TransactionGroupRepository>(
+    () => TransactionGroupRepositoryImpl(sl<AppDatabase>()),
+  );
 
   // Feature: Transactions - Presentation (BLoC)
   sl.registerFactory<TransactionBloc>(
     () => TransactionBloc(sl<TransactionRepository>()),
   );
+  // Feature: Transactions Group - Presentation (BLoC)
+  sl.registerSingleton<TransactionGroupBloc>(
+    TransactionGroupBloc(sl<TransactionGroupRepository>()),
+  );
+  // sl.registerFactory<TransactionGroupBloc>(
+  //   () => TransactionGroupBloc(sl<TransactionGroupRepository>()),
+  // );
 }
 
 Future<void> init() async => initDependencies();

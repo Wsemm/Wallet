@@ -1,9 +1,10 @@
 import 'package:equatable/equatable.dart';
+// import 'package:wallet/features/transactionsGroup/domain/entities/transaction_group_entity.dart';
 
 import '../../../../core/database/tables/transactions_table.dart';
 import '../../domain/entities/transaction_entity.dart';
 
-enum TransactionStatus { initial, loading, loaded, error }
+enum TransactionStatus { initial, loading, loaded, error, updated }
 
 class TransactionState extends Equatable {
   final TransactionStatus status;
@@ -38,14 +39,19 @@ class TransactionState extends Equatable {
       .fold(0.0, (sum, t) => sum + t.amount);
 
   double get totalDebits => transactions
-      .where((t) => t.type == TransactionType.debt && t.category != 'people_debt')
+      .where(
+        (t) => t.type == TransactionType.debt && t.category != 'people_debt',
+      )
       .fold(0.0, (sum, t) => sum + t.amount);
 
   double get totalPeopleDebits => transactions
-      .where((t) => t.type == TransactionType.debt && t.category == 'people_debt')
+      .where(
+        (t) => t.type == TransactionType.debt && t.category == 'people_debt',
+      )
       .fold(0.0, (sum, t) => sum + t.amount);
 
-  double get totalBalance => totalIncome - totalExpense + totalPeopleDebits - totalDebits;
+  double get totalBalance =>
+      totalIncome - totalExpense + totalPeopleDebits - totalDebits;
 
   @override
   List<Object?> get props => [status, transactions, errorMessage];

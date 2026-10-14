@@ -1,12 +1,9 @@
 import 'package:drift/drift.dart';
+import 'package:wallet/core/database/tables/transactions_group_table.dart';
 
-enum TransactionType {
-  income,
-  expense,
-  debt,
-}
+enum TransactionType { income, expense, debt }
 
-class Transactions extends Table {
+class TransactionsTable extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text()();
   RealColumn get amount => real()();
@@ -14,4 +11,10 @@ class Transactions extends Table {
   TextColumn get category => text()();
   TextColumn get note => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  // Foreign Key referencing GroupsTable
+  IntColumn get groupId => integer().nullable().references(
+    TransactionsGroupsTable,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
 }
