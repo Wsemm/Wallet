@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wallet/features/home/presentation/home_widget/wallet_home_widget_binder.dart';
 import 'package:wallet/features/transactionsGroup/presentation/bloc/transaction_group_bloc.dart'
     as group;
 import 'core/di/injection.dart';
@@ -30,31 +31,33 @@ class MyApp extends StatelessWidget {
                 ..add(const group.LoadTransactionsGroupsEvent()),
         ),
       ],
-      child: ScreenUtilPlusInit(
-        designSize: const Size(375, 812),
-        minTextAdapt: true,
-        splitScreenMode: true,
-        builder: (context, child) {
-          return MaterialApp.router(
-            title: 'Wallet App',
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.light,
+      child: WalletHomeWidgetBinder(
+        child: ScreenUtilPlusInit(
+          designSize: const Size(375, 812),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) {
+            return MaterialApp.router(
+              title: 'Wallet App',
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: Colors.deepPurple,
+                  brightness: Brightness.light,
+                ),
               ),
-            ),
-            darkTheme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.dark,
+              darkTheme: ThemeData(
+                useMaterial3: true,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: Colors.deepPurple,
+                  brightness: Brightness.dark,
+                ),
               ),
-            ),
-            routerConfig: sl<GoRouter>(),
-          );
-        },
+              routerConfig: sl<GoRouter>(),
+            );
+          },
+        ),
       ),
     );
   }

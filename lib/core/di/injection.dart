@@ -4,6 +4,7 @@ import 'package:wallet/features/transactionsGroup/data/repositories/transaction_
 import 'package:wallet/features/transactionsGroup/domain/repositories/transaction_group_repository.dart';
 import 'package:wallet/features/transactionsGroup/presentation/bloc/transaction_group_bloc.dart';
 
+import '../../features/home/presentation/home_widget/wallet_home_widget_sync.dart';
 import '../../features/transactions/data/repositories/transaction_repository_impl.dart';
 import '../../features/transactions/domain/repositories/transaction_repository.dart';
 import '../../features/transactions/presentation/bloc/transaction_bloc.dart';
@@ -18,6 +19,9 @@ Future<void> initDependencies() async {
 
   // Core: Navigation / Router
   sl.registerLazySingleton<GoRouter>(() => appRouter);
+  sl.registerLazySingleton<WalletHomeWidgetSync>(
+    () => WalletHomeWidgetSync(sl<GoRouter>()),
+  );
 
   // Feature: Transactions - Data
   sl.registerLazySingleton<TransactionRepository>(

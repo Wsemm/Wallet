@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_widget_description">Wallet total balance with a shortcut to add a transaction</string>
+    <string name="widget_add_transaction">Add Transaction</string>
+    <string name="widget_total_balance_label">Total Balance</string>
+    <string name="widget_income_label">Income</string>
+    <string name="widget_expense_label">Expense</string>
+    <string name="widget_debits_label">Debits</string>
+    <string name="widget_people_debits_label">People debits</string>
+</resources>
