@@ -47,3 +47,12 @@ final class TransactionsUpdated extends TransactionEvent {
   @override
   List<Object?> get props => [transactions];
 }
+
+final class AddSelectedTransToArchive extends TransactionEvent {
+  final Set<int> ids;
+
+  const AddSelectedTransToArchive(this.ids);
+
+  @override
+  List<Object?> get props => [ids];
+}

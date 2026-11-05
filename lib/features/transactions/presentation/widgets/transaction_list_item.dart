@@ -87,174 +87,204 @@ class TransactionListItem extends StatelessWidget {
                 ),
               ),
               clipBehavior: Clip.antiAlias,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Group header
-                  if (item.groupName?.trim().isNotEmpty == true)
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 14.w,
-                        vertical: 8.h,
-                      ),
-                      color: theme.colorScheme.primaryContainer.withValues(
-                        alpha: 0.35,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.folder_outlined,
-                            size: 15.r,
-                            color: theme.colorScheme.primary,
-                          ),
-                          SizedBox(width: 6.w),
-                          Expanded(
-                            child: Text(
-                              item.groupName!.trim(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            'GROUP',
-                            style: TextStyle(
-                              fontSize: 9.sp,
-                              letterSpacing: 0.8,
-                              fontWeight: FontWeight.w600,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
+              child: Dismissible(
+                onDismissed: (direction) {
+                  if (item.isArchived == true) {
+                    taBloc.add(
+                      UpdateTransactionEvent(item.copyWith(isArchived: false)),
+                    );
+                  } else {
+                    taBloc.add(
+                      UpdateTransactionEvent(item.copyWith(isArchived: true)),
+                    );
+                  }
+                },
+                key: Key(item.id.toString()),
+                background: Container(
+                  color: item.isArchived == true ? Colors.red : Colors.green,
+                  child: Center(
+                    child: Text(
+                      item.isArchived == true
+                          ? "Remove from archive"
+                          : "Add to archive",
+                      style: Theme.of(
+                        context,
+                      ).textTheme.headlineMedium!.copyWith(color: Colors.white),
                     ),
+                  ),
+                ),
 
-                  // Transaction content
-                  ListTile(
-                    onTap: onTap,
-                    onLongPress: onLongPress,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 14.w,
-                      vertical: 4.h,
-                    ),
-                    leading: selectionMode
-                        ? Checkbox(
-                            value: selected,
-                            onChanged: (_) => onTap?.call(),
-                          )
-                        : CircleAvatar(
-                            radius: 18.r,
-                            backgroundColor: badgeColor.withValues(alpha: 0.15),
-                            child: Icon(
-                              badgeIcon,
-                              size: 18.r,
-                              color: badgeColor,
-                            ),
-                          ),
-                    title: Text(
-                      item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          margin: EdgeInsets.only(top: 4.h),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 6.w,
-                            vertical: 2.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4.r),
-                          ),
-                          child: Text(
-                            isPeopleDebt ? 'People Debt' : item.category,
-                            style: TextStyle(fontSize: 10.sp),
-                          ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Group header
+                    if (item.groupName?.trim().isNotEmpty == true)
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 14.w,
+                          vertical: 8.h,
                         ),
-                        if (note != null && note.isNotEmpty)
-                          Padding(
-                            padding: EdgeInsets.only(top: 4.h),
-                            child: Text(
-                              note,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        color: theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.35,
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              item.amount.toStringAsFixed(2),
-                              style: TextStyle(
-                                fontSize: 15.sp,
-                                fontWeight: FontWeight.bold,
-                                color: badgeColor,
+                            Icon(
+                              Icons.folder_outlined,
+                              size: 15.r,
+                              color: theme.colorScheme.primary,
+                            ),
+                            SizedBox(width: 6.w),
+                            Expanded(
+                              child: Text(
+                                item.groupName!.trim(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.primary,
+                                ),
                               ),
                             ),
-                            SizedBox(height: 4.h),
                             Text(
-                              dateStr,
+                              'GROUP',
                               style: TextStyle(
-                                fontSize: 11.sp,
+                                fontSize: 9.sp,
+                                letterSpacing: 0.8,
+                                fontWeight: FontWeight.w600,
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
                         ),
-                        if (!selectionMode && item.id != null) ...[
-                          SizedBox(width: 10.w),
-                          Tooltip(
-                            message: 'Edit',
-                            child: GestureDetector(
-                              onTap: onEdit,
+                      ),
+
+                    // Transaction content
+                    ListTile(
+                      onTap: onTap,
+                      onLongPress: onLongPress,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 14.w,
+                        vertical: 4.h,
+                      ),
+                      leading: selectionMode
+                          ? Checkbox(
+                              value: selected,
+                              onChanged: (_) => onTap?.call(),
+                            )
+                          : CircleAvatar(
+                              radius: 18.r,
+                              backgroundColor: badgeColor.withValues(
+                                alpha: 0.15,
+                              ),
                               child: Icon(
-                                Icons.edit_outlined,
+                                badgeIcon,
                                 size: 18.r,
-                                color: theme.colorScheme.onSurfaceVariant,
+                                color: badgeColor,
                               ),
                             ),
-                          ),
-                          SizedBox(width: 10.w),
-                          Tooltip(
-                            message: 'Delete',
-                            child: GestureDetector(
-                              onTap: onDelete,
-                              child: Icon(
-                                Icons.delete_outline,
-                                size: 18.r,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                      title: Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            margin: EdgeInsets.only(top: 4.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6.w,
+                              vertical: 2.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(4.r),
+                            ),
+                            child: Text(
+                              isPeopleDebt ? 'People Debt' : item.category,
+                              style: TextStyle(fontSize: 10.sp),
                             ),
                           ),
+                          if (note != null && note.isNotEmpty)
+                            Padding(
+                              padding: EdgeInsets.only(top: 4.h),
+                              child: Text(
+                                note,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
                         ],
-                      ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                item.amount.toStringAsFixed(2),
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: badgeColor,
+                                ),
+                              ),
+                              SizedBox(height: 4.h),
+                              Text(
+                                dateStr,
+                                style: TextStyle(
+                                  fontSize: 11.sp,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (!selectionMode && item.id != null) ...[
+                            SizedBox(width: 10.w),
+                            Tooltip(
+                              message: 'Edit',
+                              child: GestureDetector(
+                                onTap: onEdit,
+                                child: Icon(
+                                  Icons.edit_outlined,
+                                  size: 18.r,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 10.w),
+                            Tooltip(
+                              message: 'Delete',
+                              child: GestureDetector(
+                                onTap: onDelete,
+                                child: Icon(
+                                  Icons.delete_outline,
+                                  size: 18.r,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },

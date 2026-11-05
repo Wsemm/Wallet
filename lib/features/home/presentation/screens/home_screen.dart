@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
@@ -5,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:wallet/core/router/app_router.dart';
 import 'package:wallet/features/home/presentation/widgets/dialogs/confirm_delte_all_dialog.dart';
 import 'package:wallet/features/home/presentation/widgets/empty_home_widget.dart';
+import 'package:wallet/features/home/presentation/widgets/home_drawer_widget.dart';
 import 'package:wallet/features/home/presentation/widgets/total_balance_widget.dart';
 import 'package:wallet/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:wallet/features/transactions/presentation/bloc/transaction_bloc.dart';
@@ -103,14 +106,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.folder_outlined),
                 onPressed: () => context.push(AppRoutes.transactionGroup),
               ),
-            if (_selectionMode)
+            if (_selectionMode) ...[
               IconButton(
                 tooltip: 'Delete selected',
                 icon: const Icon(Icons.delete_outline_sharp, color: Colors.red),
                 onPressed: () => deleteSelectedItems(),
               ),
+              IconButton(
+                tooltip: 'Archive selected',
+                icon: const Icon(Icons.archive_outlined),
+                onPressed: () => context.read<TransactionBloc>().add(
+                  AddSelectedTransToArchive(_selectedIds),
+                ),
+              ),
+            ],
           ],
         ),
+        drawer: HomeDrawerWidget(),
         body: BlocBuilder<TransactionGroupBloc, TransactionGroupState>(
           builder: (context, state) {
             return BlocBuilder<TransactionBloc, TransactionState>(
@@ -161,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ),
                               Text(
-                                '${state.transactions.length} items',
+                                '${state.transactions.where((element) => element.isArchived != true).length} items',
                                 style: TextStyle(
                                   fontSize: 13.sp,
                                   color: colorScheme.onSurfaceVariant,
@@ -185,31 +197,40 @@ class _HomeScreenState extends State<HomeScreen> {
                             _selectionMode ? 88.h : 55.h,
                           ),
                           sliver: SliverList(
-                            delegate: SliverChildBuilderDelegate((
-                              context,
-                              index,
-                            ) {
-                              final item = state.transactions[index];
-                              final id = item.id;
-                              return TransactionListItem(
-                                item: item,
-                                selectionMode: _selectionMode,
-                                selected:
-                                    id != null && _selectedIds.contains(id),
-                                onLongPress: id == null
-                                    ? null
-                                    : () => _enterSelection(id),
-                                onTap: _selectionMode
-                                    ? (id == null
-                                          ? null
-                                          : () => _toggleSelected(id))
-                                    : null,
-                                onEdit: () =>
-                                    showEditTransactionSheet(context, item),
-                                onDelete: () =>
-                                    confirmDeleteTransaction(context, item),
-                              );
-                            }, childCount: state.transactions.length),
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                var items = state.transactions
+                                    .where(
+                                      (element) => element.isArchived != true,
+                                    )
+                                    .toList();
+                                final item = items[index];
+                                final id = item.id;
+                                return TransactionListItem(
+                                  item: item,
+                                  selectionMode: _selectionMode,
+                                  selected:
+                                      id != null && _selectedIds.contains(id),
+                                  onLongPress: id == null
+                                      ? null
+                                      : () => _enterSelection(id),
+                                  onTap: _selectionMode
+                                      ? (id == null
+                                            ? null
+                                            : () => _toggleSelected(id))
+                                      : null,
+                                  onEdit: () =>
+                                      showEditTransactionSheet(context, item),
+                                  onDelete: () =>
+                                      confirmDeleteTransaction(context, item),
+                                );
+                              },
+                              childCount: state.transactions
+                                  .where(
+                                    (element) => element.isArchived != true,
+                                  )
+                                  .length,
+                            ),
                           ),
                         ),
                     ],

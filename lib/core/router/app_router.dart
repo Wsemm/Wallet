@@ -1,7 +1,9 @@
 import 'package:go_router/go_router.dart';
+import 'package:wallet/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:wallet/features/transactionsGroup/domain/entities/transaction_group_entity.dart';
 import 'package:wallet/features/transactionsGroup/presentation/screens/transaction_group_screen.dart';
 import 'package:wallet/features/transactionsGroup/presentation/screens/transactions_by_group_screen.dart';
+import 'package:wallet/main.dart';
 
 import '../../features/analytics/presentation/screens/analytics_screen.dart';
 import '../../features/home/presentation/screens/filtered_transactions_screen.dart';
@@ -30,6 +32,7 @@ abstract final class AppRoutes {
 }
 
 final GoRouter appRouter = GoRouter(
+  navigatorKey: navigatorKey,
   initialLocation: AppRoutes.home,
   routes: [
     GoRoute(
@@ -40,7 +43,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.addTransaction,
       name: AppRoutes.addTransactionName,
-      builder: (context, state) => const AddTransactionScreen(),
+      builder: (context, state) {
+        TransactionEntity? trans = (state.extra) as TransactionEntity?;
+        return AddTransactionScreen(transactionEntity: trans);
+      },
     ),
     GoRoute(
       path: AppRoutes.analytics,

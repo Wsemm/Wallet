@@ -31,22 +31,28 @@ class TransactionState extends Equatable {
 
   // Summary Metrics
   double get totalIncome => transactions
-      .where((t) => t.type == TransactionType.income)
+      .where((t) => (t.type == TransactionType.income && t.isArchived != true))
       .fold(0.0, (sum, t) => sum + t.amount);
 
   double get totalExpense => transactions
-      .where((t) => t.type == TransactionType.expense)
+      .where((t) => (t.type == TransactionType.expense && t.isArchived != true))
       .fold(0.0, (sum, t) => sum + t.amount);
 
   double get totalDebits => transactions
       .where(
-        (t) => t.type == TransactionType.debt && t.category != 'people_debt',
+        (t) =>
+            t.type == TransactionType.debt &&
+            t.category != 'people_debt' &&
+            t.isArchived != true,
       )
       .fold(0.0, (sum, t) => sum + t.amount);
 
   double get totalPeopleDebits => transactions
       .where(
-        (t) => t.type == TransactionType.debt && t.category == 'people_debt',
+        (t) =>
+            t.type == TransactionType.debt &&
+            t.category == 'people_debt' &&
+            t.isArchived != true,
       )
       .fold(0.0, (sum, t) => sum + t.amount);
 

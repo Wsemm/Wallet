@@ -19,8 +19,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
     with SingleTickerProviderStateMixin {
   DateTime _selectedDate = DateTime.now();
   late final TabController _tabController;
-
   static const _ranges = AnalyticsRange.values;
+  bool showArchive = false;
 
   @override
   void initState() {
@@ -63,6 +63,22 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
 
     return Scaffold(
       appBar: AppBar(
+        actions: [
+          Row(
+            children: [
+              Text("Show archived"),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(
+                  value: showArchive,
+                  onChanged: (value) => setState(() {
+                    showArchive = value;
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ],
         title: Text(
           'Analytics',
           style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
@@ -81,7 +97,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen>
       body: BlocBuilder<TransactionBloc, TransactionState>(
         builder: (context, state) {
           final snapshot = buildAnalyticsSnapshot(
-            transactions: state.transactions,
+            transactions: !showArchive
+                ? state.transactions
+                      .where((element) => element.isArchived != true)
+                      .toList()
+                : state.transactions
+                      .where((element) => element.isArchived == true)
+                      .toList(),
             range: _range,
             specfic: _selectedDate,
           );
