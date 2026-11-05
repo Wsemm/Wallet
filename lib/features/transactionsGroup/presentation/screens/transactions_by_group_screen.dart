@@ -92,9 +92,7 @@ class _TransactionsByGroupScreenState extends State<TransactionsByGroupScreen> {
                 child: Icon(Icons.close),
               )
             : null,
-        title: Text(
-          "${widget.tGroup.name}   ${widget.tGroup.id}   ${transactions.length}",
-        ),
+        title: Text("${widget.tGroup.name}  "),
       ),
       bottomNavigationBar: BlocBuilder<TransactionBloc, TransactionState>(
         builder: (context, state) {

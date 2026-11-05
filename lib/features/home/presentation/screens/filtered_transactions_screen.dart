@@ -7,23 +7,53 @@ import 'package:wallet/features/transactions/presentation/bloc/transaction_bloc.
 import 'package:wallet/features/transactions/presentation/widgets/transaction_dialogs.dart';
 import 'package:wallet/features/transactions/presentation/widgets/transaction_list_item.dart';
 
-class FilteredTransactionsScreen extends StatelessWidget {
+class FilteredTransactionsScreen extends StatefulWidget {
   final TransactionListFilter filter;
 
   const FilteredTransactionsScreen({super.key, required this.filter});
 
   @override
+  State<FilteredTransactionsScreen> createState() =>
+      _FilteredTransactionsScreenState();
+}
+
+class _FilteredTransactionsScreenState
+    extends State<FilteredTransactionsScreen> {
+  bool showArchive = false;
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          filter.title,
+          widget.filter.title,
           style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          Row(
+            children: [
+              Text("Show archived"),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(
+                  value: showArchive,
+                  onChanged: (value) => setState(() {
+                    showArchive = value;
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: BlocBuilder<TransactionBloc, TransactionState>(
         builder: (context, state) {
-          final items = state.transactions.where(filter.matches).toList();
+          final filteredItems = state.transactions.where(
+            (element) => element.isArchived != true,
+          );
+          final items = showArchive
+              ? state.transactions.where(widget.filter.matches).toList()
+              : filteredItems.where(widget.filter.matches).toList();
+
           if (items.isEmpty) {
             return Center(
               child: Text(

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:drift/drift.dart';
 import 'package:wallet/features/transactionsGroup/domain/entities/transaction_group_entity.dart';
 
@@ -43,10 +45,20 @@ class TransactionRepositoryImpl implements TransactionRepository {
   }
 
   @override
-  Future<int> insertTransaction(TransactionEntity transaction) {
-    return _database
-        .into(_database.transactionsTable)
-        .insert(_toCompanion(transaction));
+  Future<int> insertTransaction(TransactionEntity transaction) async {
+    try {
+      log("inserting");
+
+      var s = await _database
+          .into(_database.transactionsTable)
+          .insert(_toCompanion(transaction));
+      log("erro  ${s}");
+
+      return Future.value(s);
+    } catch (e) {
+      log(e.toString());
+      return Future.value(0);
+    }
   }
 
   @override
@@ -84,6 +96,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       note: Value.absentIfNull(transaction.note),
       groupId: Value.absentIfNull(transaction.groupId),
       createdAt: Value(transaction.createdAt),
+      isArchived: Value(transaction.isArchived),
     );
   }
 
@@ -107,6 +120,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       note: row.note,
       groupId: row.groupId,
       createdAt: row.createdAt,
+      isArchived: row.isArchived,
     );
   }
 

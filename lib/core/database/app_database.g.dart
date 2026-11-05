@@ -390,6 +390,20 @@ class $TransactionsTableTable extends TransactionsTable
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+  );
   static const VerificationMeta _groupIdMeta = const VerificationMeta(
     'groupId',
   );
@@ -413,6 +427,7 @@ class $TransactionsTableTable extends TransactionsTable
     category,
     note,
     createdAt,
+    isArchived,
     groupId,
   ];
   @override
@@ -466,6 +481,12 @@ class $TransactionsTableTable extends TransactionsTable
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
     if (data.containsKey('group_id')) {
       context.handle(
         _groupIdMeta,
@@ -511,6 +532,10 @@ class $TransactionsTableTable extends TransactionsTable
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      ),
       groupId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}group_id'],
@@ -536,6 +561,7 @@ class TransactionsTableData extends DataClass
   final String category;
   final String? note;
   final DateTime createdAt;
+  final bool? isArchived;
   final int? groupId;
   const TransactionsTableData({
     required this.id,
@@ -545,6 +571,7 @@ class TransactionsTableData extends DataClass
     required this.category,
     this.note,
     required this.createdAt,
+    this.isArchived,
     this.groupId,
   });
   @override
@@ -563,6 +590,9 @@ class TransactionsTableData extends DataClass
       map['note'] = Variable<String>(note);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || isArchived != null) {
+      map['is_archived'] = Variable<bool>(isArchived);
+    }
     if (!nullToAbsent || groupId != null) {
       map['group_id'] = Variable<int>(groupId);
     }
@@ -578,6 +608,9 @@ class TransactionsTableData extends DataClass
       category: Value(category),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       createdAt: Value(createdAt),
+      isArchived: isArchived == null && nullToAbsent
+          ? const Value.absent()
+          : Value(isArchived),
       groupId: groupId == null && nullToAbsent
           ? const Value.absent()
           : Value(groupId),
@@ -599,6 +632,7 @@ class TransactionsTableData extends DataClass
       category: serializer.fromJson<String>(json['category']),
       note: serializer.fromJson<String?>(json['note']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      isArchived: serializer.fromJson<bool?>(json['isArchived']),
       groupId: serializer.fromJson<int?>(json['groupId']),
     );
   }
@@ -615,6 +649,7 @@ class TransactionsTableData extends DataClass
       'category': serializer.toJson<String>(category),
       'note': serializer.toJson<String?>(note),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'isArchived': serializer.toJson<bool?>(isArchived),
       'groupId': serializer.toJson<int?>(groupId),
     };
   }
@@ -627,6 +662,7 @@ class TransactionsTableData extends DataClass
     String? category,
     Value<String?> note = const Value.absent(),
     DateTime? createdAt,
+    Value<bool?> isArchived = const Value.absent(),
     Value<int?> groupId = const Value.absent(),
   }) => TransactionsTableData(
     id: id ?? this.id,
@@ -636,6 +672,7 @@ class TransactionsTableData extends DataClass
     category: category ?? this.category,
     note: note.present ? note.value : this.note,
     createdAt: createdAt ?? this.createdAt,
+    isArchived: isArchived.present ? isArchived.value : this.isArchived,
     groupId: groupId.present ? groupId.value : this.groupId,
   );
   TransactionsTableData copyWithCompanion(TransactionsTableCompanion data) {
@@ -647,6 +684,9 @@ class TransactionsTableData extends DataClass
       category: data.category.present ? data.category.value : this.category,
       note: data.note.present ? data.note.value : this.note,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
       groupId: data.groupId.present ? data.groupId.value : this.groupId,
     );
   }
@@ -661,14 +701,24 @@ class TransactionsTableData extends DataClass
           ..write('category: $category, ')
           ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
+          ..write('isArchived: $isArchived, ')
           ..write('groupId: $groupId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, amount, type, category, note, createdAt, groupId);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    amount,
+    type,
+    category,
+    note,
+    createdAt,
+    isArchived,
+    groupId,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -680,6 +730,7 @@ class TransactionsTableData extends DataClass
           other.category == this.category &&
           other.note == this.note &&
           other.createdAt == this.createdAt &&
+          other.isArchived == this.isArchived &&
           other.groupId == this.groupId);
 }
 
@@ -692,6 +743,7 @@ class TransactionsTableCompanion
   final Value<String> category;
   final Value<String?> note;
   final Value<DateTime> createdAt;
+  final Value<bool?> isArchived;
   final Value<int?> groupId;
   const TransactionsTableCompanion({
     this.id = const Value.absent(),
@@ -701,6 +753,7 @@ class TransactionsTableCompanion
     this.category = const Value.absent(),
     this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.groupId = const Value.absent(),
   });
   TransactionsTableCompanion.insert({
@@ -711,6 +764,7 @@ class TransactionsTableCompanion
     required String category,
     this.note = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.groupId = const Value.absent(),
   }) : title = Value(title),
        amount = Value(amount),
@@ -724,6 +778,7 @@ class TransactionsTableCompanion
     Expression<String>? category,
     Expression<String>? note,
     Expression<DateTime>? createdAt,
+    Expression<bool>? isArchived,
     Expression<int>? groupId,
   }) {
     return RawValuesInsertable({
@@ -734,6 +789,7 @@ class TransactionsTableCompanion
       if (category != null) 'category': category,
       if (note != null) 'note': note,
       if (createdAt != null) 'created_at': createdAt,
+      if (isArchived != null) 'is_archived': isArchived,
       if (groupId != null) 'group_id': groupId,
     });
   }
@@ -746,6 +802,7 @@ class TransactionsTableCompanion
     Value<String>? category,
     Value<String?>? note,
     Value<DateTime>? createdAt,
+    Value<bool?>? isArchived,
     Value<int?>? groupId,
   }) {
     return TransactionsTableCompanion(
@@ -756,6 +813,7 @@ class TransactionsTableCompanion
       category: category ?? this.category,
       note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,
+      isArchived: isArchived ?? this.isArchived,
       groupId: groupId ?? this.groupId,
     );
   }
@@ -786,6 +844,9 @@ class TransactionsTableCompanion
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
     if (groupId.present) {
       map['group_id'] = Variable<int>(groupId.value);
     }
@@ -802,6 +863,7 @@ class TransactionsTableCompanion
           ..write('category: $category, ')
           ..write('note: $note, ')
           ..write('createdAt: $createdAt, ')
+          ..write('isArchived: $isArchived, ')
           ..write('groupId: $groupId')
           ..write(')'))
         .toString();
@@ -1158,6 +1220,7 @@ typedef $$TransactionsTableTableCreateCompanionBuilder =
       required String category,
       Value<String?> note,
       Value<DateTime> createdAt,
+      Value<bool?> isArchived,
       Value<int?> groupId,
     });
 typedef $$TransactionsTableTableUpdateCompanionBuilder =
@@ -1169,6 +1232,7 @@ typedef $$TransactionsTableTableUpdateCompanionBuilder =
       Value<String> category,
       Value<String?> note,
       Value<DateTime> createdAt,
+      Value<bool?> isArchived,
       Value<int?> groupId,
     });
 
@@ -1250,6 +1314,11 @@ class $$TransactionsTableTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$TransactionsGroupsTableTableFilterComposer get groupId {
     final $$TransactionsGroupsTableTableFilterComposer composer =
         $composerBuilder(
@@ -1319,6 +1388,11 @@ class $$TransactionsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$TransactionsGroupsTableTableOrderingComposer get groupId {
     final $$TransactionsGroupsTableTableOrderingComposer composer =
         $composerBuilder(
@@ -1373,6 +1447,11 @@ class $$TransactionsTableTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
 
   $$TransactionsGroupsTableTableAnnotationComposer get groupId {
     final $$TransactionsGroupsTableTableAnnotationComposer composer =
@@ -1439,6 +1518,7 @@ class $$TransactionsTableTableTableManager
                 Value<String> category = const Value.absent(),
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<bool?> isArchived = const Value.absent(),
                 Value<int?> groupId = const Value.absent(),
               }) => TransactionsTableCompanion(
                 id: id,
@@ -1448,6 +1528,7 @@ class $$TransactionsTableTableTableManager
                 category: category,
                 note: note,
                 createdAt: createdAt,
+                isArchived: isArchived,
                 groupId: groupId,
               ),
           createCompanionCallback:
@@ -1459,6 +1540,7 @@ class $$TransactionsTableTableTableManager
                 required String category,
                 Value<String?> note = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<bool?> isArchived = const Value.absent(),
                 Value<int?> groupId = const Value.absent(),
               }) => TransactionsTableCompanion.insert(
                 id: id,
@@ -1468,6 +1550,7 @@ class $$TransactionsTableTableTableManager
                 category: category,
                 note: note,
                 createdAt: createdAt,
+                isArchived: isArchived,
                 groupId: groupId,
               ),
           withReferenceMapper: (p0) => p0

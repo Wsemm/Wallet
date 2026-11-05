@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wallet/core/app/helper/cache_helper.dart';
 import 'package:wallet/features/transactionsGroup/data/repositories/transaction_group_repository_impl.dart';
 import 'package:wallet/features/transactionsGroup/domain/repositories/transaction_group_repository.dart';
 import 'package:wallet/features/transactionsGroup/presentation/bloc/transaction_group_bloc.dart';
@@ -15,6 +16,7 @@ final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
   // Core: Database / Local Storage
+  CacheHelper().init();
   sl.registerLazySingleton<AppDatabase>(() => AppDatabase());
 
   // Core: Navigation / Router

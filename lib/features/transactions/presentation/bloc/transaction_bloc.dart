@@ -19,6 +19,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
   StreamSubscription<List<TransactionEntity>>? _subscription;
   StreamSubscription<List<TransactionGroupEntity>>? _subscriptionGroups;
   StreamSubscription? _transactionSubscription;
+  List<TransactionEntity>? currentTrans;
 
   TransactionBloc(this._repository) : super(const TransactionState()) {
     on<LoadTransactionsEvent>(_onLoadTransactions);
@@ -26,6 +27,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     on<UpdateTransactionEvent>(_onUpdateTransaction);
     on<DeleteTransactionEvent>(_onDeleteTransaction);
     on<TransactionsUpdated>(_onTransactionsUpdated);
+    on<AddSelectedTransToArchive>(_addSelectedTransToArchive);
   }
 
   Future<void> _onLoadTransactions(
@@ -33,6 +35,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     Emitter<TransactionState> emit,
   ) async {
     emit(state.copyWith(status: TransactionStatus.loading));
+
     await _subscription?.cancel();
     _subscription = _repository.watchAllTransactions().listen(
       (transactions) {
@@ -65,6 +68,7 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
           return transaction;
         }).toList();
         add(TransactionsUpdated(updatedTransactions));
+        currentTrans = updatedTransactions;
       },
       onError: (error) {
         log(error.toString());
@@ -129,7 +133,8 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
     Emitter<TransactionState> emit,
   ) async {
     try {
-      await _repository.insertTransaction(event.transaction);
+      int result = await _repository.insertTransaction(event.transaction);
+      log("add opreation: $result");
     } catch (e) {
       emit(
         state.copyWith(
@@ -187,6 +192,20 @@ class TransactionBloc extends Bloc<TransactionEvent, TransactionState> {
         ),
       );
     }
+  }
+
+  _addSelectedTransToArchive(
+    AddSelectedTransToArchive event,
+    Emitter<TransactionState> state,
+  ) {
+    var updateTrabs = currentTrans;
+
+    currentTrans!
+        .where((element) => event.ids.contains(element.id))
+        .forEach(
+          (element) =>
+              add(UpdateTransactionEvent(element.copyWith(isArchived: true))),
+        );
   }
 
   @override

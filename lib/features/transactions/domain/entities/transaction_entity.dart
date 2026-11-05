@@ -13,6 +13,7 @@ class TransactionEntity extends Equatable {
   final int? groupId;
   final String? groupName;
   final String? groupDesc;
+  final bool? isArchived;
 
   const TransactionEntity({
     this.id,
@@ -25,7 +26,33 @@ class TransactionEntity extends Equatable {
     this.groupName,
     this.groupDesc,
     required this.createdAt,
+    this.isArchived,
   });
+
+  factory TransactionEntity.fromJson(Map<String, dynamic> json) {
+    late TransactionType type;
+    switch (json["type"]) {
+      case "income":
+        type = TransactionType.income;
+        break;
+      case "debt":
+        type = TransactionType.debt;
+        break;
+      case "expense":
+        type = TransactionType.expense;
+      default:
+        type = TransactionType.income;
+    }
+    return TransactionEntity(
+      title: json["title"],
+      amount: double.parse(json["amount"].toString()),
+      type: type,
+      category: json["category"],
+      createdAt: DateTime.now(),
+      note: json["note"],
+      isArchived: json["isArchived"],
+    );
+  }
 
   bool get isPeopleDebt =>
       type == TransactionType.debt && category == 'people_debt';
@@ -50,6 +77,7 @@ class TransactionEntity extends Equatable {
     DateTime? createdAt,
     String? groupName,
     String? groupDesc,
+    bool? isArchived,
   }) {
     return TransactionEntity(
       id: id ?? this.id,
@@ -62,6 +90,7 @@ class TransactionEntity extends Equatable {
       groupName: groupName ?? this.groupName,
       groupDesc: groupDesc ?? this.groupDesc,
       groupId: groupId,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
@@ -77,5 +106,22 @@ class TransactionEntity extends Equatable {
     groupId,
     groupName,
     groupDesc,
+    isArchived,
   ];
+
+  Map<String, dynamic> toJson(TransactionEntity item) {
+    return {
+      "id": item.id,
+      "title": item.title,
+      "amount": item.amount,
+      "type": item.type.name,
+      "category": item.category,
+      "note": item.note,
+      "createdAt": item.createdAt.toString(),
+      "groupId": item.groupId,
+      "groupName": item.groupName,
+      "groupDesc": item.groupDesc,
+      "isArchived": item.isArchived,
+    };
+  }
 }

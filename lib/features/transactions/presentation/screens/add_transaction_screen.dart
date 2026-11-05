@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil_plus/flutter_screenutil_plus.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wallet/features/transactions/domain/entities/transaction_entity.dart';
 
 import 'package:wallet/features/transactions/presentation/bloc/transaction_bloc.dart';
 import 'package:wallet/features/transactions/presentation/widgets/transaction_form.dart';
 import 'package:wallet/features/transactionsGroup/presentation/bloc/transaction_group_bloc.dart';
 
 class AddTransactionScreen extends StatelessWidget {
-  const AddTransactionScreen({super.key});
+  final TransactionEntity? transactionEntity;
+  const AddTransactionScreen({super.key, this.transactionEntity});
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +26,7 @@ class AddTransactionScreen extends StatelessWidget {
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
         child: TransactionForm(
+          initial: transactionEntity,
           submitLabel: 'Save Transaction',
           onSubmit: (transaction) {
             context.read<TransactionBloc>().add(

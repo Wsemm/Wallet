@@ -11,6 +11,7 @@ class TransactionsTable extends Table {
   TextColumn get category => text()();
   TextColumn get note => text().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isArchived => boolean().nullable()();
   // Foreign Key referencing GroupsTable
   IntColumn get groupId => integer().nullable().references(
     TransactionsGroupsTable,
