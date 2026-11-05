@@ -1,0 +1,43 @@
+name: Flutter CI
+
+# تفعيل التشغيل اليدوي فقط وإلغاء التشغيل التلقائي مع كل Push
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. جلب كود المستودع
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. إعداد بيئة عمل الجافا (مطلوب لأندرويد)
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    # 3. إعداد بيئة عمل Flutter
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+
+    # 4. جلب الحزم والمكتبات
+    - name: Install dependencies
+      run: flutter pub get
+
+    # 5. فحص جودة الكود
+    - name: Analyze code
+      run: flutter analyze
+
+    # 6. تشغيل الاختبارات
+    - name: Run tests
+      run: flutter test
+
+    # 7. بناء التطبيق (نسخة APK تجريبية)
+    - name: Build APK
+      run: flutter build apk --debug
